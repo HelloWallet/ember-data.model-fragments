@@ -3,7 +3,7 @@
  * @copyright Copyright 2015 Lytics Inc. and contributors
  * @license   Licensed under MIT license
  *            See https://raw.githubusercontent.com/lytics/ember-data.model-fragments/master/LICENSE
- * @version   0.4.1
+ * @version   0.4.2
  */
 
 (function() {
@@ -302,7 +302,12 @@
       },
 
       /**
-        @method adapterDidCommit
+        @method _flushChangedAttributes
+      */
+      _flushChangedAttributes: function() {},
+
+      /**
+        @method _adapterDidCommit
         @private
       */
       _adapterDidCommit: function(data) {
@@ -571,13 +576,30 @@
     });
 
     /**
+      Before saving a record, its attributes must be moved to in-flight, which must
+      happen for all fragments as well
+
+      @method flushChangedAttributes
+    */
+    model$fragments$lib$fragments$ext$$decorateMethod(model$fragments$lib$fragments$ext$$InternalModelPrototype, 'flushChangedAttributes', function flushChangedAttributesFragments() {
+      var fragment;
+
+      // Notify fragments that the record was committed
+      for (var key in this._fragments) {
+        if (fragment = this._fragments[key]) {
+          fragment._flushChangedAttributes();
+        }
+      }
+    });
+
+    /**
       If the adapter did not return a hash in response to a commit,
       merge the changed attributes and relationships into the existing
       saved data and notify all fragments of the commit.
 
       @method adapterDidCommit
     */
-    model$fragments$lib$fragments$ext$$decorateMethod(model$fragments$lib$fragments$ext$$InternalModelPrototype, 'adapterDidCommit', function adapterDidCommit(returnValue, args) {
+    model$fragments$lib$fragments$ext$$decorateMethod(model$fragments$lib$fragments$ext$$InternalModelPrototype, 'adapterDidCommit', function adapterDidCommitFragments(returnValue, args) {
       var attributes = (args[0] && args[0].attributes) || {};
       var fragment;
 
@@ -733,10 +755,17 @@
       },
 
       /**
-        @method adapterDidCommit
+        @method _flushChangedAttributes
+      */
+      _flushChangedAttributes: function() {
+        model$fragments$lib$fragments$model$$internalModelFor(this).flushChangedAttributes();
+      },
+
+      /**
+        @method _adapterDidCommit
       */
       _adapterDidCommit: function(data) {
-        model$fragments$lib$fragments$model$$internalModelFor(this).setupData({
+        model$fragments$lib$fragments$model$$internalModelFor(this).adapterDidCommit({
           attributes: data || {}
         });
       },
@@ -893,7 +922,16 @@
       },
 
       /**
-        @method adapterDidCommit
+        @method _flushChangedAttributes
+      */
+      _flushChangedAttributes: function() {
+        this.map(function(fragment) {
+          fragment._flushChangedAttributes();
+        });
+      },
+
+      /**
+        @method _adapterDidCommit
         @private
       */
       _adapterDidCommit: function(data) {
@@ -1562,7 +1600,7 @@
       @main ember-data.model-fragments
     */
     var model$fragments$lib$main$$MF = ember$lib$main$$default.Namespace.create({
-      VERSION: '0.4.1'
+      VERSION: '0.4.2'
     });
 
     model$fragments$lib$main$$exportMethods(model$fragments$lib$main$$MF);
